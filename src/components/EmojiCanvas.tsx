@@ -1,10 +1,24 @@
 import React, { useState } from 'react';
-import { View, Button, Image, StyleSheet, TextInput } from 'react-native';
+import {
+  View,
+  Image,
+  StyleSheet,
+  TextInput,
+  Dimensions,
+  TouchableOpacity,
+  Text,
+  Platform,
+  KeyboardAvoidingView,
+  ScrollView,
+} from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import EmojiPicker, { EmojiType } from 'rn-emoji-keyboard';
 import DraggableEmoji from './DraggableEmoji';
 import DraggableText from './DraggableText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ColorPickerModal from '../Modals/ColorPickerModal';
+
+const { width, height } = Dimensions.get('window');
 
 type EmojiItem = {
   id: number;
@@ -17,7 +31,21 @@ export default function EmojiCanvas() {
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojis, setEmojis] = useState<EmojiItem[]>([]);
-  const [texts, setTexts] = useState<{ id: number; content: string }[]>([]);
+  const [texts, setTexts] = useState<{ id: number; content: string; color: string }[]>([]);
+  const [canvasLayout, setCanvasLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [editingTextId, setEditingTextId] = useState<number | null>(null);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  const handleColorChange = (color: string) => {
+    if (editingTextId !== null) {
+      setTexts((prev) =>
+        prev.map((textItem) =>
+          textItem.id === editingTextId ? { ...textItem, color } : textItem
+        )
+      );
+      setEditingTextId(null);
+    }
+  };
 
   const pickImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -31,43 +59,83 @@ export default function EmojiCanvas() {
     setShowEmojiPicker(false);
   };
 
+  const resetCanvas = () => {
+    setEmojis([]);
+    setTexts([]);
+  };
+
   return (
-    <View style={{ flex: 1 ,paddingBottom: insets.bottom}}>
-      {/* Toolbar */}
-      <View style={styles.toolbar}>
-        <Button title="Pick Image" onPress={pickImage} />
-        <Button title="Add Emoji" onPress={() => setShowEmojiPicker(true)} />
-      </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {imageUri ? (
+        <>
+          {/* WhatsApp-style Top Bar */}
+          <View style={styles.topBar}>
+            <TextInput
+              placeholder="Type text..."
+              placeholderTextColor="#888"
+              style={styles.statusInput}
+              value={text}
+              onChangeText={setText}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (text.trim()) {
+                  setTexts((prev) => [
+                    ...prev,
+                    { id: Date.now(), content: text.trim(), color: '#000000' },
+                  ]);
+                  setText('');
+                }
+              }}
+              style={styles.sendButton}
+            >
+              <Text style={styles.buttonText}>➕</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowEmojiPicker(true)} style={styles.emojiButton}>
+              <Text style={{ fontSize: 24 }}>😊</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={resetCanvas} style={styles.trashButton}>
+              <Text style={{ fontSize: 22 }}>🗑️</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* Text Input */}
-      <View style={styles.textBar}>
-        <TextInput
-          placeholder="Type something..."
-          style={styles.textInput}
-          value={text}
-          onChangeText={setText}
-        />
-        <Button
-          title="Add"
-          onPress={() => {
-            if (text.trim()) {
-              setTexts((prev) => [...prev, { id: Date.now(), content: text.trim() }]);
-              setText('');
-            }
-          }}
-        />
-      </View>
-
-      {/* Canvas */}
-      <View style={styles.canvas}>
-        {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
-        {emojis.map((e) => (
-          <DraggableEmoji key={e.id} emoji={e.emoji} />
-        ))}
-        {texts.map((item, index) => (
-          <DraggableText key={`text-${index}`} content={item.content} />
-        ))}
-      </View>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            {/* Canvas */}
+            <View style={styles.canvas} onLayout={(event) => setCanvasLayout(event.nativeEvent.layout)}>
+              {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+              {canvasLayout &&
+                emojis.map((e) => (
+                  <DraggableEmoji key={e.id} emoji={e.emoji} bounds={canvasLayout} />
+                ))}
+              {canvasLayout &&
+                texts.map((item) => (
+                  <DraggableText
+                    key={item.id}
+                    content={item.content}
+                    color={item.color}
+                    bounds={canvasLayout}
+                    onPress={() => {
+                      setEditingTextId(item.id);
+                      setShowColorPicker(true);
+                    }}
+                  />
+                ))}
+            </View>
+          </ScrollView>
+        </>
+      ) : (
+        // Initial view: pick image screen
+        <View style={styles.centeredContainer}>
+          <Text style={styles.logo}>🖼️</Text>
+          <Text style={styles.title}>Pick an Image</Text>
+          <TouchableOpacity onPress={pickImage} style={styles.pickImageButton}>
+            <Text style={styles.buttonText}>Select Image</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Emoji Picker */}
       <EmojiPicker
@@ -75,43 +143,92 @@ export default function EmojiCanvas() {
         onEmojiSelected={handleEmojiSelect}
         onClose={() => setShowEmojiPicker(false)}
       />
-    </View>
+
+      {/* Color Picker for Text Edit */}
+      <ColorPickerModal
+        visible={showColorPicker}
+        onClose={() => {
+          setShowColorPicker(false);
+          setEditingTextId(null);
+        }}
+        onColorSelected={handleColorChange}
+      />
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    backgroundColor: '#f2f2f2',
-  },
-  textBar: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingBottom: 10,
     backgroundColor: '#fff',
-    gap: 10,
-  },
-  textInput: {
-    flex: 1,
-    backgroundColor: '#f9f9f9',
-    fontSize: 18,
+    paddingHorizontal: 10,
     paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  statusInput: {
+    flex: 1,
+    fontSize: 16,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+    backgroundColor: '#f1f1f1',
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  sendButton: {
+    padding: 8,
+    backgroundColor: '#34C759',
+    borderRadius: 20,
+    marginRight: 8,
+  },
+  emojiButton: {
+    padding: 6,
+    marginRight: 8,
+  },
+  trashButton: {
+    padding: 6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   canvas: {
     flex: 1,
+    minHeight: height * 0.6,
     backgroundColor: '#eee',
     position: 'relative',
+    margin: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   image: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
     position: 'absolute',
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fafafa',
+  },
+  pickImageButton: {
+    marginTop: 20,
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  title: {
+    fontSize: 22,
+    marginTop: 10,
+    fontWeight: '500',
+    color: '#333',
+  },
+  logo: {
+    fontSize: 60,
   },
 });
