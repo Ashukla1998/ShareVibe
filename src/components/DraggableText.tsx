@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
   text: {
     fontWeight: 'bold',
     textAlign: 'center',
+    backgroundColor:'white'
   },
   controls: {
     flexDirection: 'row',

@@ -11,6 +11,7 @@ import {
   Text,
   SafeAreaView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import posts from '../../data/posts';
 import Post from '../components/Post';
@@ -20,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 const scale = (size) => (width / 375) * size;
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -68,6 +70,18 @@ export default function HomeScreen() {
             </View>
           )}
         />
+        <FlatList
+          data={trendingTopics}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{paddingTop:5}}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.trendingItem}>
+              <Text style={styles.trendingText}>{item}</Text>
+            </View>
+          )}
+        />
       </View>
 
       {/* Posts */}
@@ -93,7 +107,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f0f0' },
+  container: { flex: 1, backgroundColor: '#f0f0f0',paddingTop:30},
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
