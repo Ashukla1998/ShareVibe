@@ -35,6 +35,8 @@ export default function EmojiCanvas() {
   const [canvasLayout, setCanvasLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [editingTextId, setEditingTextId] = useState<number | null>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isTextInputVisible, setIsTextInputVisible] = useState(false);
+
 
   const handleColorChange = (color: string) => {
     if (editingTextId !== null) {
@@ -73,27 +75,40 @@ export default function EmojiCanvas() {
         <>
           {/* WhatsApp-style Top Bar */}
           <View style={styles.topBar}>
-            <TextInput
-              placeholder="Type text..."
-              placeholderTextColor="#888"
-              style={styles.statusInput}
-              value={text}
-              onChangeText={setText}
-            />
-            <TouchableOpacity
-              onPress={() => {
-                if (text.trim()) {
-                  setTexts((prev) => [
-                    ...prev,
-                    { id: Date.now(), content: text.trim(), color: '#000000' },
-                  ]);
-                  setText('');
-                }
-              }}
-              style={styles.sendButton}
-            >
-              <Text style={styles.buttonText}>➕</Text>
-            </TouchableOpacity>
+            {isTextInputVisible ? (
+              <>
+                <TextInput
+                  placeholder="Type text..."
+                  placeholderTextColor="#888"
+                  style={styles.statusInput}
+                  value={text}
+                  onChangeText={setText}
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    if (text.trim()) {
+                      setTexts((prev) => [
+                        ...prev,
+                        { id: Date.now(), content: text.trim(), color: '#000000' },
+                      ]);
+                      setText('');
+                      setIsTextInputVisible(false); 
+                    }
+                  }}
+                  style={styles.sendButton}
+                >
+                  <Text style={styles.buttonText}>➕</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setIsTextInputVisible(true)}
+                style={styles.sendButton}
+              >
+                <Text style={styles.buttonText}>➕</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity onPress={() => setShowEmojiPicker(true)} style={styles.emojiButton}>
               <Text style={{ fontSize: 24 }}>😊</Text>
             </TouchableOpacity>
