@@ -10,13 +10,17 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
 } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
+import { launchImageLibrary,launchCamera } from 'react-native-image-picker';
 import EmojiPicker, { EmojiType } from 'rn-emoji-keyboard';
 import DraggableEmoji from './DraggableEmoji';
 import DraggableText from './DraggableText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ColorPickerModal from '../Modals/ColorPickerModal';
+import Video from 'react-native-video';
+
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +31,8 @@ type EmojiItem = {
 
 export default function EmojiCanvas() {
   const insets = useSafeAreaInsets();
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [mediaUri, setMediaUri] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'photo' | 'video' | null>(null);
   const [text, setText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [emojis, setEmojis] = useState<EmojiItem[]>([]);
@@ -49,11 +54,34 @@ export default function EmojiCanvas() {
     }
   };
 
-  const pickImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+  const pickMedia = () => {
+    launchImageLibrary({ mediaType: 'mixed' }, (response) => {
       const asset = response.assets?.[0];
-      if (asset?.uri) setImageUri(asset.uri);
+      if (asset?.uri) {
+        setMediaUri(asset.uri);
+        setMediaType(asset.type?.startsWith('video') ? 'video' : 'photo');
+      }
     });
+  };
+
+  const captureMediaWithCamera = () => {
+  launchCamera(
+    {
+      mediaType: 'mixed', 
+      videoQuality: 'high',
+    },
+    (response) => {
+      const asset = response.assets?.[0];
+      if (asset?.uri) {
+        setMediaUri(asset.uri);
+        setMediaType(asset.type?.startsWith('video') ? 'video' : 'photo');
+      }
+    }
+  );
+};
+
+  const trimVideo = async (videoUri: string) => {
+    Alert.alert("you pressed trim");
   };
 
   const handleEmojiSelect = (emojiObj: EmojiType) => {
@@ -71,7 +99,7 @@ export default function EmojiCanvas() {
       style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {imageUri ? (
+      {mediaUri ? (
         <>
           {/* WhatsApp-style Top Bar */}
           <View style={styles.topBar}>
@@ -92,7 +120,7 @@ export default function EmojiCanvas() {
                         { id: Date.now(), content: text.trim(), color: '#000000' },
                       ]);
                       setText('');
-                      setIsTextInputVisible(false); 
+                      setIsTextInputVisible(false);
                     }
                   }}
                   style={styles.sendButton}
@@ -112,6 +140,14 @@ export default function EmojiCanvas() {
             <TouchableOpacity onPress={() => setShowEmojiPicker(true)} style={styles.emojiButton}>
               <Text style={{ fontSize: 24 }}>😊</Text>
             </TouchableOpacity>
+            {mediaType === 'video' && (
+              <TouchableOpacity
+                onPress={() => trimVideo(mediaUri)}
+                style={styles.trimButton}
+              >
+                <Text style={{ fontSize: 20 }}>✂️</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity onPress={resetCanvas} style={styles.trashButton}>
               <Text style={{ fontSize: 22 }}>🗑️</Text>
             </TouchableOpacity>
@@ -120,7 +156,21 @@ export default function EmojiCanvas() {
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             {/* Canvas */}
             <View style={styles.canvas} onLayout={(event) => setCanvasLayout(event.nativeEvent.layout)}>
-              {imageUri && <Image source={{ uri: imageUri }} style={styles.image} />}
+              {mediaUri && mediaType === 'photo' && (
+                <Image source={{ uri: mediaUri }} style={styles.image} />
+              )}
+
+              {mediaUri && mediaType === 'video' && (
+                <Video
+                  source={{ uri: mediaUri }}
+                  style={styles.image}
+                  resizeMode="cover"
+                  repeat
+                  controls
+                  paused={false}
+                />
+              )}
+
               {canvasLayout &&
                 emojis.map((e) => (
                   <DraggableEmoji key={e.id} emoji={e.emoji} bounds={canvasLayout} />
@@ -145,9 +195,12 @@ export default function EmojiCanvas() {
         // Initial view: pick image screen
         <View style={styles.centeredContainer}>
           <Text style={styles.logo}>🖼️</Text>
-          <Text style={styles.title}>Pick an Image</Text>
-          <TouchableOpacity onPress={pickImage} style={styles.pickImageButton}>
-            <Text style={styles.buttonText}>Select Image</Text>
+          <Text style={styles.title}>Pick an Media</Text>
+          <TouchableOpacity onPress={pickMedia} style={styles.pickImageButton}>
+            <Text style={styles.buttonText}>Select Media</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={captureMediaWithCamera} style={[styles.pickImageButton, { backgroundColor: '#34C759' }]}>
+            <Text style={styles.buttonText}>📷 Capture Media</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -246,4 +299,11 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 60,
   },
+  trimButton: {
+    padding: 6,
+    marginRight: 8,
+  },
+
 });
+
+

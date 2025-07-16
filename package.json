@@ -20,6 +20,7 @@
     "react-native-bootsplash": "^6.3.10",
     "react-native-emoji-modal": "^0.2.4",
     "react-native-emoji-popup": "^0.3.2",
+    "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.27.1",
     "react-native-image-picker": "^8.2.1",
     "react-native-reanimated": "^3.18.0",
