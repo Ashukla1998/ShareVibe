@@ -16,6 +16,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import posts from '../../data/posts';
 import Post from '../components/Post';
 import ActivityScreen from './ActivityScreen';
+import NotificationModal from '../Modals/NotificationModal';
 
 const { width, height } = Dimensions.get('window');
 const scale = (size) => (width / 375) * size;
@@ -94,14 +95,16 @@ export default function HomeScreen() {
       />
 
       {/* Modal for Activity */}
-      <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
+      {/* <Modal visible={modalVisible} animationType="slide" onRequestClose={() => setModalVisible(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
           <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
             <Text style={{ fontSize: scale(18), color: '#007AFF' }}>Close</Text>
           </TouchableOpacity>
           <ActivityScreen />
         </SafeAreaView>
-      </Modal>
+      </Modal> */}
+      {modalVisible && (<NotificationModal visible={modalVisible} onClose={() => setModalVisible(false)} />)}
+
     </SafeAreaView>
   );
 }

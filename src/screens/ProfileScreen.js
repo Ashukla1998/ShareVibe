@@ -13,6 +13,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import ActivityScreen from './ActivityScreen';
 import SettingsModal from '../Modals/Setting';
+import NotificationModal from '../Modals/NotificationModal';
 
 const { width } = Dimensions.get('window');
 const scale = (size) => (width / 375) * size;
@@ -85,21 +86,7 @@ const ProfileScreen = () => {
         </View>
 
         {/* Modal for Notifications */}
-        <Modal
-          visible={modalVisible}
-          animationType="slide"
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={{ fontSize: scale(18), color: '#007AFF' }}>Close</Text>
-            </TouchableOpacity>
-            <ActivityScreen />
-          </SafeAreaView>
-        </Modal>
+        {modalVisible && (<NotificationModal visible={modalVisible} onClose={() => setModalVisible(false)} />)}
 
         {/* Settings Modal */}
         {settingModal && (

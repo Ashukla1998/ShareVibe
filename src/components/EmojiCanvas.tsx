@@ -64,21 +64,31 @@ export default function EmojiCanvas() {
     });
   };
 
-  const captureMediaWithCamera = () => {
+  const captureMediaWithCamera = async () => {
   launchCamera(
     {
-      mediaType: 'mixed', 
-      videoQuality: 'high',
+      mediaType: 'mixed',
+      saveToPhotos: true,
+      cameraType: 'back',
     },
     (response) => {
-      const asset = response.assets?.[0];
-      if (asset?.uri) {
-        setMediaUri(asset.uri);
-        setMediaType(asset.type?.startsWith('video') ? 'video' : 'photo');
+      if (response.didCancel) {
+        console.log('User cancelled camera picker');
+      } else if (response.errorCode) {
+        console.error('Camera error:', response.errorMessage);
+        Alert.alert('Camera Error', response.errorMessage || 'Something went wrong');
+      } else {
+        const asset = response.assets?.[0];
+        if (asset?.uri) {
+          setMediaUri(asset.uri);
+          setMediaType(asset.type?.startsWith('video') ? 'video' : 'photo');
+        }
       }
     }
   );
 };
+
+
 
   const trimVideo = async (videoUri: string) => {
     Alert.alert("you pressed trim");
